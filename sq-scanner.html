@@ -1,0 +1,230 @@
+<!-- Index.html file -->
+<!DOCTYPE html> 
+<html lang="en"> 
+  
+<head> 
+    <meta charset="UTF-8"> 
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0"> 
+    <!-- <link rel="stylesheet"
+          href="style.css">  -->
+    <title>QR Code Scanner / Reader 
+    </title> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color:  #e0ebeb;
+        }
+
+        th, td {
+            padding: 5px;
+            text-align: left;
+        }
+
+        .down-load, .clear-data{
+            position: fixed;
+            bottom: 20px;
+        }
+
+        .clear-data{
+            border: 1.5px solid red;
+            margin-top: 20px;
+            width: 95px;
+            height: 30px;
+            border-radius: 7px;
+            background-color: transparent;
+            color: red;
+            font-weight: bold;
+            box-shadow: 0 5px 5px rgba(255, 0, 0, 0.2);
+            left: 42%;
+        }
+
+        .down-load{
+            border: 1.5px solid green;
+            margin-top: 20px;
+            width: 125px;
+            height: 30px;
+            border-radius: 7px;
+            background-color: transparent;
+            color: green;
+            font-weight: bold;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+            left: 50%;
+        }
+
+        
+       
+        
+    </style>
+</head> 
+  
+<body> 
+    <div class="container"> 
+        <h1>Scan QR Codes</h1> 
+        <div class="section"> 
+            <div id="my-qr-reader"> 
+            </div> 
+        </div> 
+        <button  id="clearButton" class="clear-data">Clear Data</button>
+        <button onclick="exportToExcel()" class="down-load">Download Excel</button>
+
+        <div class="result-list"><p id="p-tag"></p>
+        <table class="result-table">
+            <tr>
+                <th>Tên</th>
+                <th>Ngành</th>
+                <th>Trường</th>
+            </tr>
+        </table>
+        </div>
+    </div> 
+    <script
+        src="https://unpkg.com/html5-qrcode"> 
+    </script> 
+    <script>
+    
+var clearButton = document.getElementById("clearButton");
+
+clearButton.addEventListener("click", function() {
+    studentList = [];
+    localStorage.removeItem("studentList");
+    alert("Data cleared!");
+    window.location.reload();
+});
+
+
+    let studentList;
+
+    if (localStorage.getItem("studentList") !== null) {
+
+        studentList = JSON.parse(localStorage.getItem("studentList"));
+
+    } else {
+        studentList = [];
+    }
+
+
+    var table = document.querySelector(".result-table");
+
+    var pTag = document.getElementById("p-tag");
+    pTag.innerHTML = "Total: " + studentList.length +" student(s)";
+
+    for (var i = 0; i < studentList.length; i++) {
+        var newRow = document.createElement("tr");
+
+        var cell1 = document.createElement("td");
+        var cell2 = document.createElement("td");
+        var cell3 = document.createElement("td");
+
+        cell1.textContent = studentList[i].name;
+        cell2.textContent = studentList[i].field;
+        cell3.textContent = studentList[i].university;
+
+        newRow.appendChild(cell1);
+        newRow.appendChild(cell2);
+        newRow.appendChild(cell3);
+
+        table.appendChild(newRow);
+    }
+
+    
+    function domReady(fn) { 
+    if ( 
+        document.readyState === "complete" || 
+        document.readyState === "interactive"
+    ) { 
+        setTimeout(fn, 1000); 
+    } else { 
+        document.addEventListener("DOMContentLoaded", fn); 
+    } 
+    } 
+    function isObjectInArray(arr, obj) {
+        for(let i = 0; i<arr.length; i++){
+            if(obj.name===arr[i].name && obj.field===arr[i].field){
+                return false;
+            }
+        }
+        return true;
+}
+
+
+
+    domReady(function () { 
+    
+        // If found you qr code 
+        function onScanSuccess(decodeText, decodeResult) { 
+            alert("You Qr is : " + decodeText,decodeResult);
+            
+        let decodeArray = decodeText.split("\n");
+        var newObject = {
+            name: decodeArray[0],
+            field: decodeArray[1],
+            university: decodeArray[2]
+        }
+
+
+            if (isObjectInArray(studentList, newObject)) {
+                console.log("OK")
+                studentList.unshift(newObject);
+
+                localStorage.setItem("studentList", JSON.stringify(studentList));
+
+                var newRow = document.createElement("tr");
+                var cell1 = document.createElement("td");
+                var cell2 = document.createElement("td");
+                var cell3 = document.createElement("td");
+
+                cell1.textContent = newObject.name;
+                cell2.textContent = newObject.field;
+                cell3.textContent = newObject.university;
+                newRow.appendChild(cell1);
+                newRow.appendChild(cell2);
+                newRow.appendChild(cell3);
+
+                table.appendChild(newRow);
+
+                document.addEventListener("DOMContentLoaded", function () {
+                    const secondRow = table.rows[1]; 
+                    secondRow.style.backgroundColor = " #ccffcc"; 
+                    secondRow.style.border = "1px solid  #009900"
+                });
+
+                pTag.innerHTML = "Total: " + studentList.length +" student(s)";
+
+
+                }
+       
+    } 
+  
+    let htmlscanner = new Html5QrcodeScanner( 
+        "my-qr-reader", 
+        { fps: 10, qrbos: 250 } 
+    ); 
+    htmlscanner.render(onScanSuccess); 
+});
+
+    function exportToExcel() {
+    
+        const excelHeaders = ["Họ tên", "Ngành - Khóa", "Trường"];
+        const excelData = [excelHeaders];
+
+
+        studentList.forEach(item => {
+            const rowData = [item.name, item.field, item.university];
+            excelData.push(rowData);
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+        XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+
+        XLSX.writeFile(wb, "output.xlsx");
+    }
+    
+    </script> 
+</body> 
+  
+</html>
